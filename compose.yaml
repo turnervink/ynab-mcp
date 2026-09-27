@@ -1,0 +1,26 @@
+services:
+  ynab-mcp:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      # OAuth client registrations and tokens (encrypted). Must persist, or
+      # every restart forces Claude to reconnect.
+      - ynab-mcp-data:/data
+    # Not published to the host: only reachable through the tunnel.
+    # Uncomment to test from your LAN.
+    # ports:
+    #   - "8000:8000"
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      ynab-mcp:
+        condition: service_healthy
+
+volumes:
+  ynab-mcp-data:
